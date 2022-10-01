@@ -331,18 +331,16 @@ class Graph:
                 element.bond.effort_symbol, element.bond.flow_symbol, time_symbol
             )
             if isinstance(element, Element_I):
-                state_equations[element.bond.flow_symbol(time_symbol)] = eq
-                state_variables[state_counter] = (
-                    element.name,
-                    element.bond.flow_symbol(time_symbol),
-                )
+                state_symbol = Symbol(f"{element.name}_state")
+                state_equations[state_symbol] = eq
+                other_equations.append(Equality(element.bond.flow_symbol(time_symbol), state_symbol / element.symbol))
+                state_variables[state_counter] = state_symbol
                 state_counter += 1
             elif isinstance(element, Element_C):
-                state_equations[element.bond.effort_symbol(time_symbol)] = eq
-                state_variables[state_counter] = (
-                    element.name,
-                    element.bond.effort_symbol(time_symbol),
-                )
+                state_symbol = Symbol(f"{element.name}_state")
+                state_equations[state_symbol] = eq
+                other_equations.append(Equality(element.bond.effort_symbol(time_symbol), state_symbol / element.symbol))
+                state_variables[state_counter] = state_symbol
                 state_counter += 1
             else:
                 other_equations.append(eq)
@@ -446,14 +444,11 @@ class Graph:
             if substitutions_made:
                 ordered_equations = substituted_equations
 
-        state_symbols = dict()
         state_num = dict()
         state_names = dict()
 
-        for num, (element_name, var) in state_variables.items():
-            state_symbols[var] = Symbol(f"{element_name}_state")
+        for num, var in state_variables.items():
             state_num[var] = num
-            state_names[num] = element_name
 
         diff_eq_sys = dict()
         for var, eq in state_equations.items():
@@ -464,10 +459,17 @@ class Graph:
                 before = diff_eq
                 diff_eq = diff_eq.subs(ordered_equations)
 
-            diff_eq_sys[state_num[var]] = diff_eq.subs(state_symbols)
+            diff_eq_sys[state_num[var]] = diff_eq
 
         return (
             diff_eq_sys,
-            [var.subs(state_symbols) for (name, var) in state_variables.values()],
+            list(state_variables.values()),
             state_names,
         )
+    
+    def get_nodes(self):
+        import itertools
+        node_list = []
+        for element in itertools.chain(self.elements, self.junctions, self.two_port_elements):
+            node_list.append(element)
+        return node_list
