@@ -39,6 +39,45 @@ class Graph:
                 return False
         return True
 
+    def preferred_causalities_valid(self):
+        success = True
+        for bond in self.bonds:
+            if (
+                bond.effort_in_at_to == True
+                and (
+                    bond.node_to.causality_policy() == Causality.PreferEffortOut
+                    or bond.node_from.causality_policy() == Causality.PreferEffortIn
+                )
+            ) or (
+                bond.effort_in_at_to == False
+                and (
+                    bond.node_to.causality_policy() == Causality.PreferEffortIn
+                    or bond.node_from.causality_policy() == Causality.PreferEffortOut
+                )
+            ):
+                logging.warning(
+                    f"Bond from {bond.node_from.name} to {bond.node_to.name} has non-preferred causality"
+                )
+                success = False
+            if (
+                bond.effort_in_at_to == True
+                and (
+                    bond.node_to.causality_policy() == Causality.FixedEffortOut
+                    or bond.node_from.causality_policy() == Causality.FixedEffortIn
+                )
+            ) or (
+                bond.effort_in_at_to == False
+                and (
+                    bond.node_to.causality_policy() == Causality.FixedEffortIn
+                    or bond.node_from.causality_policy() == Causality.FixedEffortOut
+                )
+            ):
+                logging.error(
+                    f"Bond from {bond.node_from.name} to {bond.node_to.name} has invalid causality due to fixed causality requirements"
+                )
+                success = False
+        return success
+
     def add(self, bond: Bond):
         if isinstance(bond.node_from, OnePortElement):
             if bond.node_from in self.elements:
@@ -270,9 +309,13 @@ class Graph:
                 break
 
         if self.all_causalities_set():
-            logging.debug("Graph is causal!")
+            logging.debug("Graph is causal")
         else:
-            logging.warning("Graph is not causal...")
+            logging.error("Graph is not causal")
+            raise Exception("Non-causal graph detected")
+        
+        if not self.preferred_causalities_valid():
+            raise Exception("Unsupported causalities detected")
 
     def get_state_equations(self):
         self.assign_causalities()
@@ -390,6 +433,18 @@ class Graph:
         ordered_equations = dict()
         for eq in other_equations:
             ordered_equations[eq.lhs] = eq.rhs
+
+        substitutions_made = True
+        while substitutions_made:
+            substitutions_made = False
+            substituted_equations = dict()
+            for lhs, rhs in ordered_equations.items():
+                before = rhs
+                substituted_equations[lhs] = rhs.subs(ordered_equations)
+                if substituted_equations[lhs] != before:
+                    substitutions_made = True
+            if substitutions_made:
+                ordered_equations = substituted_equations
 
         state_symbols = dict()
         state_num = dict()
