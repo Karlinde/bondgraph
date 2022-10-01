@@ -395,10 +395,10 @@ class Graph:
         state_num = dict()
         state_names = dict()
 
-        for num, (name, var) in state_variables.items():
-            state_symbols[var] = Symbol(f"x_{num}")
+        for num, (element_name, var) in state_variables.items():
+            state_symbols[var] = Symbol(f"{element_name}_state")
             state_num[var] = num
-            state_names[num] = name
+            state_names[num] = element_name
 
         diff_eq_sys = dict()
         for var, eq in state_equations.items():

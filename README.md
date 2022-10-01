@@ -37,9 +37,9 @@ graph.add(Bond(mass_object, inertia))
 
 state_equations, state_vars, state_names = graph.get_state_equations()
 
-# Print the dictionary of state numbers and their state equations: 
+# Print the dictionary of state numbers and the right hand side of their state equations: 
 print(state_equations)
-# {1: (F - k_f*x_1)/m}
+# {1: (F - inertia_state*k_f)/m}
 ```
 
 ## Limitations
