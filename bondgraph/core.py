@@ -294,6 +294,63 @@ class Graph:
                     )
                     something_happened = True
         return something_happened
+    
+    def try_assign_arbitrary_causality(self):
+        something_happened = False
+        for bond in self.bonds:
+            if bond.effort_in_at_to is not None:
+                continue
+            if bond.node_to.causality_policy() == Causality.Indifferent:
+                if isinstance(bond.node_from, JunctionEqualEffort):
+                    if bond.node_from.effort_in_bond is None:
+                        bond.effort_in_at_to = False
+                        bond.node_from.effort_in_bond = bond
+                        something_happened = True
+                    else:
+                        bond.effort_in_at_to = True
+                        something_happened = True
+                elif isinstance(bond.node_from, JunctionEqualFlow):
+                    if bond.node_from.effort_out_bond is None:
+                        bond.effort_in_at_to = True
+                        bond.node_from.effort_out_bond = bond
+                        something_happened = True
+                    else:
+                        bond.effort_in_at_to = False
+                        something_happened = True
+                elif isinstance(bond.node_from, Transformer):
+                    if bond.node_from.effort_in_bond is None:
+                        bond.effort_in_at_to = False
+                        bond.node_from.effort_in_bond = bond
+                        something_happened = True
+                    else:
+                        bond.effort_in_at_to = True
+                        something_happened = True
+            elif bond.node_from.causality_policy() == Causality.Indifferent:
+                if isinstance(bond.node_to, JunctionEqualEffort):
+                    if bond.node_to.effort_in_bond is None:
+                        bond.effort_in_at_to = True
+                        bond.node_to.effort_in_bond = bond
+                        something_happened = True
+                    else:
+                        bond.effort_in_at_to = False
+                        something_happened = True
+                elif isinstance(bond.node_to, JunctionEqualFlow):
+                    if bond.node_to.effort_out_bond is None:
+                        bond.effort_in_at_to = False
+                        bond.node_to.effort_out_bond = bond
+                        something_happened = True
+                    else:
+                        bond.effort_in_at_to = True
+                        something_happened = True
+                if isinstance(bond.node_to, Transformer):
+                    if bond.node_to.effort_in_bond is None:
+                        bond.effort_in_at_to = True
+                        bond.node_to.effort_in_bond = bond
+                        something_happened = True
+                    else:
+                        bond.effort_in_at_to = False
+                        something_happened = True
+        return something_happened
 
     def assign_causalities(self):
         self.assign_fixed_causalities()
@@ -303,8 +360,8 @@ class Graph:
                 continue
             elif self.try_assign_preferred_causality():
                 continue
-            # elif self.try_assign_arbitrary_causality():
-            #     continue
+            elif self.try_assign_arbitrary_causality():
+                continue
             else:
                 break
 
@@ -330,17 +387,11 @@ class Graph:
             eq = element.equations(
                 element.bond.effort_symbol, element.bond.flow_symbol, time_symbol
             )
-            if isinstance(element, Element_I):
+            if isinstance(element, Element_I) or isinstance(element, Element_C):
                 state_symbol = Symbol(f"{element.name}_state")
-                state_equations[state_symbol] = eq
-                other_equations.append(Equality(element.bond.flow_symbol(time_symbol), state_symbol / element.symbol))
+                other_equations.append(Equality(eq.lhs, state_symbol / element.symbol))
                 state_variables[state_counter] = state_symbol
-                state_counter += 1
-            elif isinstance(element, Element_C):
-                state_symbol = Symbol(f"{element.name}_state")
-                state_equations[state_symbol] = eq
-                other_equations.append(Equality(element.bond.effort_symbol(time_symbol), state_symbol / element.symbol))
-                state_variables[state_counter] = state_symbol
+                state_equations[state_symbol] = Equality(state_symbol, eq.rhs * element.symbol)
                 state_counter += 1
             else:
                 other_equations.append(eq)
@@ -369,6 +420,8 @@ class Graph:
                         new_eq = Equality(
                             new_eq.lhs, new_eq.rhs - bond.flow_symbol(time_symbol)
                         )
+                if junction.effort_in_bond.node_to == junction:
+                    new_eq = Equality(new_eq.lhs, -new_eq.rhs)
                 other_equations.append(new_eq)
             elif isinstance(junction, JunctionEqualFlow):
                 # Add new equation for setting effort-out bond's effort symbol equal to the rest of the efforts
@@ -386,6 +439,8 @@ class Graph:
                         new_eq = Equality(
                             new_eq.lhs, new_eq.rhs - bond.effort_symbol(time_symbol)
                         )
+                if junction.effort_out_bond.node_to == junction:
+                    new_eq = Equality(new_eq.lhs, -new_eq.rhs)
                 other_equations.append(new_eq)
 
         substitutions_made = True
