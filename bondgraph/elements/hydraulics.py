@@ -17,8 +17,8 @@ class Element_ReliefValve(OnePortElement):
             flow(time),
             effort(time)
             / (
-                self.rc * (0.5 + 0.5 * tanh(self.k * (self.d - effort(time))))
-                + self.ro * (0.5 - 0.5 * tanh(self.k * (self.d - effort(time))))
+                self.rc * (0.5 - 0.5 * tanh(self.k * (effort(time) - self.d)))
+                + self.ro * (0.5 + 0.5 * tanh(self.k * (effort(time) - self.d)))
             ),
         )
 
