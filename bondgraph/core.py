@@ -26,12 +26,13 @@ class Bond:
 
 
 class Graph:
-    def __init__(self):
+    def __init__(self, time_symbol: Symbol):
         self.bonds: List[Bond] = []
         self.elements: List[OnePortElement] = []
         self.junctions: List[Junction] = []
         self.two_port_elements: List[TwoPortElement] = []
         self.parameters: Set[Symbol] = set()
+        self.time_symbol = time_symbol
 
     def all_causalities_set(self):
         for bond in self.bonds:
@@ -377,15 +378,13 @@ class Graph:
     def get_state_equations(self):
         self.assign_causalities()
 
-        time_symbol = Symbol("t")
-
         state_equations = dict()
         state_variables = dict()
         state_counter = 1
         other_equations = []
         for element in self.elements:
             eq = element.equations(
-                element.bond.effort_symbol, element.bond.flow_symbol, time_symbol
+                element.bond.effort_symbol, element.bond.flow_symbol, self.time_symbol
             )
             if isinstance(element, Element_I) or isinstance(element, Element_C):
                 state_symbol = Symbol(f"{element.name}_state")
@@ -402,23 +401,23 @@ class Graph:
                 element.bond_2.effort_symbol,
                 element.bond_1.flow_symbol,
                 element.bond_2.flow_symbol,
-                time_symbol,
+                self.time_symbol,
             )
 
         for junction in self.junctions:
             if isinstance(junction, JunctionEqualEffort):
                 # Add new equation for setting effort-in bond's flow symbol equal to the rest of the flows.
-                new_eq = Equality(junction.effort_in_bond.flow_symbol(time_symbol), 0)
+                new_eq = Equality(junction.effort_in_bond.flow_symbol(self.time_symbol), 0)
                 for bond in junction.bonds:
                     if bond is junction.effort_in_bond:
                         continue
                     if junction == bond.node_to:
                         new_eq = Equality(
-                            new_eq.lhs, new_eq.rhs + bond.flow_symbol(time_symbol)
+                            new_eq.lhs, new_eq.rhs + bond.flow_symbol(self.time_symbol)
                         )
                     else:
                         new_eq = Equality(
-                            new_eq.lhs, new_eq.rhs - bond.flow_symbol(time_symbol)
+                            new_eq.lhs, new_eq.rhs - bond.flow_symbol(self.time_symbol)
                         )
                 if junction.effort_in_bond.node_to == junction:
                     new_eq = Equality(new_eq.lhs, -new_eq.rhs)
@@ -426,18 +425,18 @@ class Graph:
             elif isinstance(junction, JunctionEqualFlow):
                 # Add new equation for setting effort-out bond's effort symbol equal to the rest of the efforts
                 new_eq = Equality(
-                    junction.effort_out_bond.effort_symbol(time_symbol), 0
+                    junction.effort_out_bond.effort_symbol(self.time_symbol), 0
                 )
                 for bond in junction.bonds:
                     if bond is junction.effort_out_bond:
                         continue
                     if junction == bond.node_to:
                         new_eq = Equality(
-                            new_eq.lhs, new_eq.rhs + bond.effort_symbol(time_symbol)
+                            new_eq.lhs, new_eq.rhs + bond.effort_symbol(self.time_symbol)
                         )
                     else:
                         new_eq = Equality(
-                            new_eq.lhs, new_eq.rhs - bond.effort_symbol(time_symbol)
+                            new_eq.lhs, new_eq.rhs - bond.effort_symbol(self.time_symbol)
                         )
                 if junction.effort_out_bond.node_to == junction:
                     new_eq = Equality(new_eq.lhs, -new_eq.rhs)
@@ -455,8 +454,8 @@ class Graph:
                             continue
                         substitutions.append(
                             (
-                                bond.effort_symbol(time_symbol),
-                                junction.effort_in_bond.effort_symbol(time_symbol),
+                                bond.effort_symbol(self.time_symbol),
+                                junction.effort_in_bond.effort_symbol(self.time_symbol),
                             )
                         )
                 elif isinstance(junction, JunctionEqualFlow):
@@ -466,8 +465,8 @@ class Graph:
                             continue
                         substitutions.append(
                             (
-                                bond.flow_symbol(time_symbol),
-                                junction.effort_out_bond.flow_symbol(time_symbol),
+                                bond.flow_symbol(self.time_symbol),
+                                junction.effort_out_bond.flow_symbol(self.time_symbol),
                             )
                         )
                 for index, eq in enumerate(other_equations):
@@ -507,7 +506,7 @@ class Graph:
 
         diff_eq_sys = dict()
         for var, eq in state_equations.items():
-            diff_eq = eq.rhs.diff(time_symbol)
+            diff_eq = eq.rhs.diff(self.time_symbol)
 
             before = None
             while before != diff_eq:
