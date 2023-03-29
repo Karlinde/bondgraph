@@ -1,12 +1,12 @@
 from sympy import Function, Symbol, Equality, Expr
 from typing import Set, Tuple
-from bondgraph.common import Causality
+from bondgraph.common import Causality, Node
 
 
-class OnePortElement:
-    def __init__(self, name):
+class OnePortElement(Node):
+    def __init__(self, name, visualization_symbol):
+        super().__init__(name, visualization_symbol)
         self.bond = None
-        self.name = name
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
         pass
@@ -22,11 +22,11 @@ class OnePortElement:
         pass
 
 
-class TwoPortElement:
-    def __init__(self, name):
+class TwoPortElement(Node):
+    def __init__(self, name, visualization_symbol):
+        super().__init__(name, visualization_symbol)
         self.bond_1 = None
         self.bond_2 = None
-        self.name = name
 
     def equations(
         self,
@@ -51,7 +51,7 @@ class TwoPortElement:
 
 class Element_R(OnePortElement):
     def __init__(self, name: str, symbol: Symbol):
-        super().__init__(name)
+        super().__init__(name, 'R')
         self.symbol = symbol
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
@@ -63,6 +63,7 @@ class Element_R(OnePortElement):
     @staticmethod
     def causality_policy():
         return Causality.Indifferent
+    
 
     def parameter_symbols(self) -> Set[Symbol]:
         return {self.symbol}
@@ -70,7 +71,7 @@ class Element_R(OnePortElement):
 
 class Element_C(OnePortElement):
     def __init__(self, name: str, symbol: Symbol):
-        super().__init__(name)
+        super().__init__(name, 'C')
         self.symbol = symbol
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
@@ -86,7 +87,7 @@ class Element_C(OnePortElement):
 
 class Element_I(OnePortElement):
     def __init__(self, name: str, symbol: Symbol):
-        super().__init__(name)
+        super().__init__(name, 'I')
         self.symbol = symbol
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
@@ -102,7 +103,7 @@ class Element_I(OnePortElement):
 
 class Source_effort(OnePortElement):
     def __init__(self, name: str, symbol: Symbol):
-        super().__init__(name)
+        super().__init__(name, 'Se')
         self.symbol = symbol
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
@@ -118,7 +119,7 @@ class Source_effort(OnePortElement):
 
 class Source_flow(OnePortElement):
     def __init__(self, name: str, symbol: Symbol):
-        super().__init__(name)
+        super().__init__(name, 'Sf')
         self.symbol = symbol
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
@@ -134,7 +135,7 @@ class Source_flow(OnePortElement):
 
 class Transformer(TwoPortElement):
     def __init__(self, name: str, ratio: Symbol):
-        super().__init__(name)
+        super().__init__(name, 'TF')
         self.ratio = ratio
         self.effort_in_bond = None
 

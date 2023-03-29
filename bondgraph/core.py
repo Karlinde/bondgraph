@@ -25,7 +25,7 @@ class Bond:
         self.effort_symbol = None
 
 
-class Graph:
+class BondGraph:
     def __init__(self, time_symbol: Symbol):
         self.bonds: List[Bond] = []
         self.elements: List[OnePortElement] = []

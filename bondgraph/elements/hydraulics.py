@@ -6,7 +6,7 @@ from typing import Set
 
 class Element_ReliefValve(OnePortElement):
     def __init__(self, name: str, ro: Symbol, rc: Symbol, k: Symbol, d: Symbol):
-        super().__init__(name)
+        super().__init__(name, 'Rv')
         self.ro = ro
         self.rc = rc
         self.d = d

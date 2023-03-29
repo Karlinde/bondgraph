@@ -1,5 +1,10 @@
 from enum import Enum
 
+class Node:
+    def __init__(self, name: str, visualization_symbol: str):
+        self.name = name
+        self.visualization_symbol = visualization_symbol
+
 
 class Causality(Enum):
     Indifferent = 0
