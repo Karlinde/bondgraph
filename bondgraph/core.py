@@ -370,7 +370,7 @@ class BondGraph:
                 break
 
         if self.all_causalities_set():
-            logging.debug("Graph is causal")
+            logging.debug("All causalities set, graph is causal")
         else:
             logging.error("Graph is not causal")
             raise Exception("Non-causal graph detected")
@@ -387,6 +387,7 @@ class BondGraph:
         state_variables = dict()
         state_counter = 1
         other_equations = []
+        logging.debug("Formulating equations for one-port elements...")
         for element in self._elements:
             if hasattr(element, 'equations'):
                 other_equations += element.equations(element.bond.effort_symbol, element.bond.flow_symbol, self._time_symbol)
@@ -399,6 +400,7 @@ class BondGraph:
                     state_equations[eq[0]] = Equality(eq[0], eq[1])
                     state_counter += 1
 
+        logging.debug("Formulating equations for two-port elements...")
         for element in self._two_port_elements:
             other_equations += element.equations(
                 element.bond_1.effort_symbol,
@@ -408,6 +410,7 @@ class BondGraph:
                 self._time_symbol,
             )
 
+        logging.debug("Formulating equations for junctions...")
         for junction in self._junctions:
             if isinstance(junction, JunctionEqualEffort):
                 # Add new equation for setting effort-in bond's flow symbol equal to the rest of the flows.
@@ -446,43 +449,34 @@ class BondGraph:
                     new_eq = Equality(new_eq.lhs, -new_eq.rhs)
                 other_equations.append(new_eq)
 
+        logging.debug("Substituting in junction equations...")
         substitutions_made = True
         while substitutions_made:
             substitutions_made = False
             for junction in self._junctions:
-                substitutions = []
+                substitutions = dict()
                 if isinstance(junction, JunctionEqualEffort):
                     # Substitute all effort symbols with the effort-in bond's effort symbol.
                     for bond in junction.bonds:
                         if bond is junction.effort_in_bond:
                             continue
-                        substitutions.append(
-                            (
-                                bond.effort_symbol(self._time_symbol),
-                                junction.effort_in_bond.effort_symbol(self._time_symbol),
-                            )
-                        )
+                        substitutions[bond.effort_symbol(self._time_symbol)] = junction.effort_in_bond.effort_symbol(self._time_symbol)
                 elif isinstance(junction, JunctionEqualFlow):
                     # Substitute all flow symbols with the effort-out bond's flow symbol
                     for bond in junction.bonds:
                         if bond is junction.effort_out_bond:
                             continue
-                        substitutions.append(
-                            (
-                                bond.flow_symbol(self._time_symbol),
-                                junction.effort_out_bond.flow_symbol(self._time_symbol),
-                            )
-                        )
+                        substitutions[bond.flow_symbol(self._time_symbol)] = junction.effort_out_bond.flow_symbol(self._time_symbol)
                 for index, eq in enumerate(other_equations):
                     before = other_equations[index]
                     other_equations[index] = Equality(
-                        eq.lhs, eq.rhs.subs(substitutions)
+                        eq.lhs, eq.rhs.xreplace(substitutions)
                     )
                     if other_equations[index] != before:
                         substitutions_made = True
                 for key, val in state_equations.items():
                     before = state_equations[key]
-                    state_equations[key] = val.subs(substitutions)
+                    state_equations[key] = val.xreplace(substitutions)
                     if state_equations[key] != before:
                         substitutions_made = True
 
@@ -490,13 +484,14 @@ class BondGraph:
         for eq in other_equations:
             ordered_equations[eq.lhs] = eq.rhs
 
+        logging.debug("Substituting in other equations...")
         substitutions_made = True
         while substitutions_made:
             substitutions_made = False
             substituted_equations = dict()
             for lhs, rhs in ordered_equations.items():
                 before = rhs
-                substituted_equations[lhs] = rhs.subs(ordered_equations)
+                substituted_equations[lhs] = rhs.xreplace(ordered_equations)
                 if substituted_equations[lhs] != before:
                     substitutions_made = True
             if substitutions_made:
@@ -506,6 +501,7 @@ class BondGraph:
         for num, var in state_variables.items():
             state_num[var] = num
 
+        logging.debug("Generating differential equations...")
         diff_eq_sys = dict()
         for var, eq in state_equations.items():
             diff_eq = eq.rhs.diff(self._time_symbol)
@@ -513,7 +509,7 @@ class BondGraph:
             before = None
             while before != diff_eq:
                 before = diff_eq
-                diff_eq = diff_eq.subs(ordered_equations)
+                diff_eq = diff_eq.xreplace(ordered_equations)
 
             diff_eq_sys[state_num[var]] = diff_eq
 
