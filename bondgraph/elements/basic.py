@@ -1,5 +1,5 @@
 from sympy import Function, Symbol, Equality, Expr
-from typing import Set, Tuple
+from typing import List, Set, Tuple
 from bondgraph.common import Causality, Node
 
 
@@ -8,7 +8,7 @@ class OnePortElement(Node):
         super().__init__(name, visualization_symbol)
         self.bond = None
 
-    def equations(self, effort: Function, flow: Function, time: Symbol):
+    def equations(self, effort: Function, flow: Function, time: Symbol) -> List[Equality]:
         pass
 
     @staticmethod
@@ -54,11 +54,11 @@ class Element_R(OnePortElement):
         super().__init__(name, 'R')
         self.symbol = symbol
 
-    def equations(self, effort: Function, flow: Function, time: Symbol):
+    def equations(self, effort: Function, flow: Function, time: Symbol) -> List[Equality]:
         if self.bond.effort_in_at_to == True and self.bond.node_to == self:
-            return Equality(flow(time), effort(time) / self.symbol)
+            return [Equality(flow(time), effort(time) / self.symbol)]
         else:
-            return Equality(effort(time), self.symbol * flow(time))
+            return [Equality(effort(time), self.symbol * flow(time))]
 
     @staticmethod
     def causality_policy():
@@ -70,35 +70,43 @@ class Element_R(OnePortElement):
 
 
 class Element_C(OnePortElement):
-    def __init__(self, name: str, symbol: Symbol):
+    def __init__(self, name: str, parameter: Symbol, state: Symbol):
         super().__init__(name, 'C')
-        self.symbol = symbol
+        self._parameter = parameter
+        self._state = state
 
-    def equations(self, effort: Function, flow: Function, time: Symbol):
-        return Equality(effort(time), 1 / self.symbol * flow(time).integrate(time))
+    def equations(self, effort: Function, flow: Function, time: Symbol) -> List[Equality]:
+        return [Equality(effort(time), self._state)]
+
+    def state_equations(self, effort: Function, flow: Function, time: Symbol) -> List[Tuple[Symbol, Expr]]:
+        return [(self._state, flow(time).integrate(time) / self._parameter)]
 
     @staticmethod
     def causality_policy():
         return Causality.PreferEffortOut
 
     def parameter_symbols(self) -> Set[Symbol]:
-        return {self.symbol}
+        return {self._parameter}
 
 
 class Element_I(OnePortElement):
-    def __init__(self, name: str, symbol: Symbol):
+    def __init__(self, name: str, parameter: Symbol, state: Symbol):
         super().__init__(name, 'I')
-        self.symbol = symbol
+        self._parameter = parameter
+        self._state = state
 
-    def equations(self, effort: Function, flow: Function, time: Symbol):
-        return Equality(flow(time), 1 / self.symbol * effort(time).integrate(time))
+    def equations(self, effort: Function, flow: Function, time: Symbol) -> List[Equality]:
+        return [Equality(flow(time), self._state)]
+
+    def state_equations(self, effort: Function, flow: Function, time: Symbol) -> List[Tuple[Symbol, Expr]]:
+        return [(self._state, effort(time).integrate(time) / self._parameter)]
 
     @staticmethod
     def causality_policy():
         return Causality.PreferEffortIn
 
     def parameter_symbols(self) -> Set[Symbol]:
-        return {self.symbol}
+        return {self._parameter}
 
 
 class Source_effort(OnePortElement):
@@ -107,7 +115,7 @@ class Source_effort(OnePortElement):
         self.symbol = symbol
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
-        return Equality(effort(time), self.symbol)
+        return [Equality(effort(time), self.symbol)]
 
     @staticmethod
     def causality_policy():
@@ -123,7 +131,7 @@ class Source_flow(OnePortElement):
         self.symbol = symbol
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
-        return Equality(flow(time), self.symbol)
+        return [Equality(flow(time), self.symbol)]
 
     @staticmethod
     def causality_policy():

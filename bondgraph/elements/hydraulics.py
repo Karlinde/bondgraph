@@ -13,14 +13,14 @@ class Element_ReliefValve(OnePortElement):
         self.k = k
 
     def equations(self, effort: Function, flow: Function, time: Symbol):
-        return Equality(
+        return [Equality(
             flow(time),
             effort(time)
             / (
                 self.rc * (0.5 - 0.5 * tanh(self.k * (effort(time) - self.d)))
                 + self.ro * (0.5 + 0.5 * tanh(self.k * (effort(time) - self.d)))
             ),
-        )
+        )]
 
     @staticmethod
     def causality_policy():

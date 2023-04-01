@@ -29,7 +29,7 @@ def gen_graphviz(bond_graph: BondGraph) -> graphviz.Digraph:
         node_map[n] =  n.name
     
     b: Bond
-    for b in bond_graph.bonds:
+    for b in bond_graph._bonds:
         if b.effort_in_at_to == True:
             arrowhead_attr = 'teelvee'
             arrowtail_attr = 'none'
