@@ -70,43 +70,43 @@ class Element_R(OnePortElement):
 
 
 class Element_C(OnePortElement):
-    def __init__(self, name: str, parameter: Symbol, state: Symbol):
+    def __init__(self, name: str, compliance: Symbol, displacement: Symbol):
         super().__init__(name, 'C')
-        self._parameter = parameter
-        self._state = state
+        self._compliance = compliance
+        self._displacement = displacement
 
     def equations(self, effort: Function, flow: Function, time: Symbol) -> List[Equality]:
-        return [Equality(effort(time), self._state)]
+        return [Equality(effort(time), self._displacement / self._compliance)]
 
     def state_equations(self, effort: Function, flow: Function, time: Symbol) -> List[Tuple[Symbol, Expr]]:
-        return [(self._state, flow(time).integrate(time) / self._parameter)]
+        return [(self._displacement, flow(time).integrate(time))]
 
     @staticmethod
     def causality_policy():
         return Causality.PreferEffortOut
 
     def parameter_symbols(self) -> Set[Symbol]:
-        return {self._parameter}
+        return {self._compliance}
 
 
 class Element_I(OnePortElement):
-    def __init__(self, name: str, parameter: Symbol, state: Symbol):
+    def __init__(self, name: str, inertia: Symbol, momentum: Symbol):
         super().__init__(name, 'I')
-        self._parameter = parameter
-        self._state = state
-
+        self._inertia = inertia
+        self._momentum = momentum
+    
     def equations(self, effort: Function, flow: Function, time: Symbol) -> List[Equality]:
-        return [Equality(flow(time), self._state)]
+        return [Equality(flow(time), self._momentum / self._inertia)]
 
     def state_equations(self, effort: Function, flow: Function, time: Symbol) -> List[Tuple[Symbol, Expr]]:
-        return [(self._state, effort(time).integrate(time) / self._parameter)]
+        return [(self._momentum, effort(time).integrate(time))]
 
     @staticmethod
     def causality_policy():
         return Causality.PreferEffortIn
 
     def parameter_symbols(self) -> Set[Symbol]:
-        return {self._parameter}
+        return {self._inertia}
 
 
 class Source_effort(OnePortElement):

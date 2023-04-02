@@ -3,3 +3,8 @@ requires = [
     "setuptools>=46.6",
     "wheel"
 ]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]

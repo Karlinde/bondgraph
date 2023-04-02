@@ -27,6 +27,14 @@ class Bond:
 _BG_STATE_INIT = 0
 _BG_STATE_CAUSALITIES_DONE = 1
 
+def count_bonds_with_causalities_set(bonds: List[Bond]) -> int:
+    count = 0
+    for b in bonds:
+        if b.effort_in_at_to is not None:
+            count += 1
+    return count
+
+
 class BondGraph:
     def __init__(self, time_symbol: Symbol):
         self._bonds: List[Bond] = []
@@ -147,11 +155,15 @@ class BondGraph:
                 logging.debug(
                     f"Set fixed effort-in causality at {bond.node_from} (vs {bond.node_to})"
                 )
-
+    
     def try_assign_constraint_causalities(self):
         something_happened = False
         for junction in self._junctions:
+            num_bonds = len(junction.bonds)
             if isinstance(junction, JunctionEqualEffort):
+                if count_bonds_with_causalities_set(junction.bonds) < num_bonds - 1:
+                    # Not enough other bonds have been set, junction causality not yet fully constrained
+                    continue
                 for bond in junction.bonds:
                     if (bond.node_to == junction and bond.effort_in_at_to == True) or (
                         bond.node_from == junction and bond.effort_in_at_to == False
@@ -164,25 +176,41 @@ class BondGraph:
                                 f"Causality conflict! Multiple bonds have declared effort-in causality at 0-junction {junction}"
                             )
                         junction.effort_in_bond = bond
-                if junction.effort_in_bond is not None:
-                    for bond in junction.bonds:
-                        if bond is junction.effort_in_bond:
-                            continue
-                        if bond.node_to == junction and bond.effort_in_at_to == None:
-                            bond.effort_in_at_to = False
-                            logging.debug(
-                                f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-effort junction {junction} "
-                            )
-                            something_happened = True
-                        elif (
-                            bond.node_from == junction and bond.effort_in_at_to == None
-                        ):
+                for bond in junction.bonds:
+                    if bond.effort_in_at_to is None and junction.effort_in_bond is None:
+                        # Only one option left, this bond must be the effort-in bond
+                        if bond.node_to == junction:
                             bond.effort_in_at_to = True
                             logging.debug(
                                 f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-effort junction {junction}"
                             )
-                            something_happened = True
+                        else:
+                            bond.effort_in_at_to = False
+                            logging.debug(
+                                f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-effort junction {junction}"
+                            )
+                        junction.effort_in_bond = bond
+                        break
+                    if bond is junction.effort_in_bond:
+                        continue
+                    if bond.node_to == junction and bond.effort_in_at_to == None:
+                        bond.effort_in_at_to = False
+                        logging.debug(
+                            f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-effort junction {junction} "
+                        )
+                        something_happened = True
+                    elif (
+                        bond.node_from == junction and bond.effort_in_at_to == None
+                    ):
+                        bond.effort_in_at_to = True
+                        logging.debug(
+                            f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-effort junction {junction}"
+                        )
+                        something_happened = True
             elif isinstance(junction, JunctionEqualFlow):
+                if count_bonds_with_causalities_set(junction.bonds) < num_bonds - 1:
+                    # Not enough other bonds have been set, junction causality not yet fully constrained
+                    continue
                 for bond in junction.bonds:
                     if (bond.node_to == junction and bond.effort_in_at_to == False) or (
                         bond.node_from == junction and bond.effort_in_at_to == True
@@ -195,24 +223,37 @@ class BondGraph:
                                 f"Causality conflict! Multiple bonds have declared effort-out causality at 1-junction {junction}"
                             )
                         junction.effort_out_bond = bond
-                if junction.effort_out_bond is not None:
-                    for bond in junction.bonds:
-                        if bond is junction.effort_out_bond:
-                            continue
-                        if bond.node_to == junction and bond.effort_in_at_to == None:
-                            bond.effort_in_at_to = True
-                            logging.debug(
-                                f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-flow junction {junction}"
-                            )
-                            something_happened = True
-                        elif (
-                            bond.node_from == junction and bond.effort_in_at_to == None
-                        ):
+                for bond in junction.bonds:
+                    if bond.effort_in_at_to is None and junction.effort_out_bond is None:
+                        # Only one option left, this bond must be the effort-out bond
+                        if bond.node_to == junction:
                             bond.effort_in_at_to = False
                             logging.debug(
                                 f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-flow junction {junction}"
                             )
-                            something_happened = True
+                        else:
+                            bond.effort_in_at_to = True
+                            logging.debug(
+                                f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-flow junction {junction}"
+                            )
+                        junction.effort_out_bond = bond
+                        break
+                    if bond is junction.effort_out_bond:
+                        continue
+                    if bond.node_to == junction and bond.effort_in_at_to == None:
+                        bond.effort_in_at_to = True
+                        logging.debug(
+                            f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-flow junction {junction}"
+                        )
+                        something_happened = True
+                    elif (
+                        bond.node_from == junction and bond.effort_in_at_to == None
+                    ):
+                        bond.effort_in_at_to = False
+                        logging.debug(
+                            f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-flow junction {junction}"
+                        )
+                        something_happened = True
         for element in self._two_port_elements:
             if isinstance(element, Transformer):
                 trans: Transformer = element
@@ -264,11 +305,16 @@ class BondGraph:
                         logging.debug(
                             f"Set constraint effort-in causality at {trans.bond_2.node_from} (vs {trans.bond_2.node_to}) due to transformer {trans}"
                         )
+        if not something_happened:
+            logging.debug("Not assigning any new constraint causalities")
         return something_happened
 
     def try_assign_preferred_causality(self):
         something_happened = False
         for element in self._elements:
+            if something_happened:
+                # Only assign causality for one element at a time
+                return True
             if element.bond.effort_in_at_to != None:
                 continue
             if element.causality_policy() == Causality.PreferEffortIn:
@@ -297,11 +343,16 @@ class BondGraph:
                         f"Set preferred effort-out causality at {element.bond.node_from} (vs {element.bond.node_to})"
                     )
                     something_happened = True
+        if not something_happened:
+            logging.debug("Not assigning any new preferred causality")
         return something_happened
     
     def try_assign_arbitrary_causality(self):
         something_happened = False
         for bond in self._bonds:
+            if something_happened:
+                # Only assign causality for one element at a time
+                return True
             if bond.effort_in_at_to is not None:
                 continue
             if bond.node_to.causality_policy() == Causality.Indifferent:
@@ -310,50 +361,86 @@ class BondGraph:
                         bond.effort_in_at_to = False
                         bond.node_from.effort_in_bond = bond
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-out causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                     else:
                         bond.effort_in_at_to = True
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-in causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                 elif isinstance(bond.node_from, JunctionEqualFlow):
                     if bond.node_from.effort_out_bond is None:
                         bond.effort_in_at_to = True
                         bond.node_from.effort_out_bond = bond
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-in causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                     else:
                         bond.effort_in_at_to = False
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-out causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                 elif isinstance(bond.node_from, Transformer):
                     if bond.node_from.effort_in_bond is None:
                         bond.effort_in_at_to = False
                         bond.node_from.effort_in_bond = bond
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-out causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                     else:
                         bond.effort_in_at_to = True
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-in causality at {bond.node_to} (vs {bond.node_from})"
+                        )
             elif bond.node_from.causality_policy() == Causality.Indifferent:
                 if isinstance(bond.node_to, JunctionEqualEffort):
                     if bond.node_to.effort_in_bond is None:
                         bond.effort_in_at_to = True
                         bond.node_to.effort_in_bond = bond
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-in causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                     else:
                         bond.effort_in_at_to = False
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-out causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                 elif isinstance(bond.node_to, JunctionEqualFlow):
                     if bond.node_to.effort_out_bond is None:
                         bond.effort_in_at_to = False
                         bond.node_to.effort_out_bond = bond
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-out causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                     else:
                         bond.effort_in_at_to = True
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-in causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                 if isinstance(bond.node_to, Transformer):
                     if bond.node_to.effort_in_bond is None:
                         bond.effort_in_at_to = True
                         bond.node_to.effort_in_bond = bond
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-in causality at {bond.node_to} (vs {bond.node_from})"
+                        )
                     else:
                         bond.effort_in_at_to = False
                         something_happened = True
+                        logging.debug(
+                            f"Set arbitrary effort-out causality at {bond.node_to} (vs {bond.node_from})"
+                        )
         return something_happened
 
     def assign_causalities(self):
