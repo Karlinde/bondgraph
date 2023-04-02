@@ -1,5 +1,5 @@
 from bondgraph.core import Bond, BondGraph
-from bondgraph.junctions import Junction, JunctionEqualEffort, JunctionEqualFlow
+from bondgraph.junctions import JunctionEqualEffort, JunctionEqualFlow
 from bondgraph.elements.basic import (
     Element_R,
     Element_I,
@@ -88,3 +88,57 @@ def test_more_complex():
     assert vars == [p, q]
     assert eqs[1].equals(F - r * v - r * p / i - q / c)
     assert eqs[2].equals(v + p / i)
+
+
+def test_basic_transformer_1():
+    t = _("t")
+    F = _("F")
+    r = _("r")
+    i = _("i")
+    p = _("p")
+    d = _("d")
+
+    e_se = Source_effort("F", F)
+    j1 = JunctionEqualFlow("j1")
+    e_i = Element_I("i", i, p)
+    j2 = JunctionEqualFlow("j2")
+    e_r = Element_R("r", r)
+    tf = Transformer("TF", d)
+
+    g = BondGraph(t)
+    g.add(Bond(e_se, j1))
+    g.add(Bond(j1, e_i))
+    g.add(Bond(j1, tf))
+    g.add(Bond(tf, j2))
+    g.add(Bond(j2, e_r))
+
+    eqs, vars = g.get_state_equations()
+    assert vars == [p]
+    assert eqs[1] == (F - (r * d**2 * p) / i)
+
+
+def test_basic_transformer_2():
+    t = _("t")
+    F = _("F")
+    r = _("r")
+    c = _("c")
+    q = _("q")
+    d = _("d")
+
+    e_se = Source_effort("F", F)
+    j1 = JunctionEqualFlow("j1")
+    e_c = Element_C("c", c, q)
+    j2 = JunctionEqualFlow("j2")
+    e_r = Element_R("r", r)
+    tf = Transformer("TF", d)
+
+    g = BondGraph(t)
+    g.add(Bond(e_se, j1))
+    g.add(Bond(j1, e_c))
+    g.add(Bond(j1, tf))
+    g.add(Bond(tf, j2))
+    g.add(Bond(j2, e_r))
+
+    eqs, vars = g.get_state_equations()
+    assert vars == [q]
+    assert eqs[1] == ((F - q / c) / (r * d**2))

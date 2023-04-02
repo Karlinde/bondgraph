@@ -1,6 +1,5 @@
-from sympy import Symbol
-from bondgraph.core import BondGraph, Bond
-from bondgraph.common import Node
+from bondgraph.core import BondGraph
+from bondgraph.common import Node, Bond
 
 import graphviz
 

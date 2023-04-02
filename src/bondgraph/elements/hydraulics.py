@@ -1,4 +1,4 @@
-from bondgraph.core import Causality
+from bondgraph.common import Causality
 from bondgraph.elements.basic import OnePortElement
 from sympy import Symbol, Equality, Function, tanh
 from typing import Set

@@ -54,7 +54,6 @@ output.view()
 ```
 
 ## Limitations
-- Currently only a few standard elements are implemented.
 - Algebraic loops are not handled at all and will result in failure to generate equations.
 - Non-integrating (differential) causality for C or I elements is not currently possible.
 
