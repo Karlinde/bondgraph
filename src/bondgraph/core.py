@@ -24,8 +24,10 @@ class Bond:
         self.flow_symbol = None
         self.effort_symbol = None
 
+
 _BG_STATE_INIT = 0
 _BG_STATE_CAUSALITIES_DONE = 1
+
 
 def count_bonds_with_causalities_set(bonds: List[Bond]) -> int:
     count = 0
@@ -155,7 +157,7 @@ class BondGraph:
                 logging.debug(
                     f"Set fixed effort-in causality at {bond.node_from} (vs {bond.node_to})"
                 )
-    
+
     def try_assign_constraint_causalities(self):
         something_happened = False
         for junction in self._junctions:
@@ -199,9 +201,7 @@ class BondGraph:
                             f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-effort junction {junction} "
                         )
                         something_happened = True
-                    elif (
-                        bond.node_from == junction and bond.effort_in_at_to == None
-                    ):
+                    elif bond.node_from == junction and bond.effort_in_at_to == None:
                         bond.effort_in_at_to = True
                         logging.debug(
                             f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-effort junction {junction}"
@@ -224,7 +224,10 @@ class BondGraph:
                             )
                         junction.effort_out_bond = bond
                 for bond in junction.bonds:
-                    if bond.effort_in_at_to is None and junction.effort_out_bond is None:
+                    if (
+                        bond.effort_in_at_to is None
+                        and junction.effort_out_bond is None
+                    ):
                         # Only one option left, this bond must be the effort-out bond
                         if bond.node_to == junction:
                             bond.effort_in_at_to = False
@@ -246,9 +249,7 @@ class BondGraph:
                             f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-flow junction {junction}"
                         )
                         something_happened = True
-                    elif (
-                        bond.node_from == junction and bond.effort_in_at_to == None
-                    ):
+                    elif bond.node_from == junction and bond.effort_in_at_to == None:
                         bond.effort_in_at_to = False
                         logging.debug(
                             f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-flow junction {junction}"
@@ -346,7 +347,7 @@ class BondGraph:
         if not something_happened:
             logging.debug("Not assigning any new preferred causality")
         return something_happened
-    
+
     def try_assign_arbitrary_causality(self):
         something_happened = False
         for bond in self._bonds:
@@ -461,7 +462,7 @@ class BondGraph:
         else:
             logging.error("Graph is not causal")
             raise Exception("Non-causal graph detected")
-        
+
         if not self.preferred_causalities_valid():
             raise Exception("Unsupported causalities detected")
         self._state = _BG_STATE_CAUSALITIES_DONE
@@ -476,10 +477,18 @@ class BondGraph:
         other_equations = []
         logging.debug("Formulating equations for one-port elements...")
         for element in self._elements:
-            if hasattr(element, 'equations'):
-                other_equations += element.equations(element.bond.effort_symbol, element.bond.flow_symbol, self._time_symbol)
-            if hasattr(element, 'state_equations'):
-                state_eqs = element.state_equations(element.bond.effort_symbol, element.bond.flow_symbol, self._time_symbol)
+            if hasattr(element, "equations"):
+                other_equations += element.equations(
+                    element.bond.effort_symbol,
+                    element.bond.flow_symbol,
+                    self._time_symbol,
+                )
+            if hasattr(element, "state_equations"):
+                state_eqs = element.state_equations(
+                    element.bond.effort_symbol,
+                    element.bond.flow_symbol,
+                    self._time_symbol,
+                )
                 for eq in state_eqs:
                     if eq[0] in state_equations:
                         raise Exception(f"Duplicate state symbol encountered: {eq[0]}")
@@ -501,7 +510,9 @@ class BondGraph:
         for junction in self._junctions:
             if isinstance(junction, JunctionEqualEffort):
                 # Add new equation for setting effort-in bond's flow symbol equal to the rest of the flows.
-                new_eq = Equality(junction.effort_in_bond.flow_symbol(self._time_symbol), 0)
+                new_eq = Equality(
+                    junction.effort_in_bond.flow_symbol(self._time_symbol), 0
+                )
                 for bond in junction.bonds:
                     if bond is junction.effort_in_bond:
                         continue
@@ -526,11 +537,13 @@ class BondGraph:
                         continue
                     if junction == bond.node_to:
                         new_eq = Equality(
-                            new_eq.lhs, new_eq.rhs + bond.effort_symbol(self._time_symbol)
+                            new_eq.lhs,
+                            new_eq.rhs + bond.effort_symbol(self._time_symbol),
                         )
                     else:
                         new_eq = Equality(
-                            new_eq.lhs, new_eq.rhs - bond.effort_symbol(self._time_symbol)
+                            new_eq.lhs,
+                            new_eq.rhs - bond.effort_symbol(self._time_symbol),
                         )
                 if junction.effort_out_bond.node_to == junction:
                     new_eq = Equality(new_eq.lhs, -new_eq.rhs)
@@ -547,13 +560,17 @@ class BondGraph:
                     for bond in junction.bonds:
                         if bond is junction.effort_in_bond:
                             continue
-                        substitutions[bond.effort_symbol(self._time_symbol)] = junction.effort_in_bond.effort_symbol(self._time_symbol)
+                        substitutions[
+                            bond.effort_symbol(self._time_symbol)
+                        ] = junction.effort_in_bond.effort_symbol(self._time_symbol)
                 elif isinstance(junction, JunctionEqualFlow):
                     # Substitute all flow symbols with the effort-out bond's flow symbol
                     for bond in junction.bonds:
                         if bond is junction.effort_out_bond:
                             continue
-                        substitutions[bond.flow_symbol(self._time_symbol)] = junction.effort_out_bond.flow_symbol(self._time_symbol)
+                        substitutions[
+                            bond.flow_symbol(self._time_symbol)
+                        ] = junction.effort_out_bond.flow_symbol(self._time_symbol)
                 for index, eq in enumerate(other_equations):
                     before = other_equations[index]
                     other_equations[index] = Equality(
@@ -604,10 +621,13 @@ class BondGraph:
             diff_eq_sys,
             list(state_variables.values()),
         )
-    
+
     def get_nodes(self):
         import itertools
+
         node_list = []
-        for element in itertools.chain(self._elements, self._junctions, self._two_port_elements):
+        for element in itertools.chain(
+            self._elements, self._junctions, self._two_port_elements
+        ):
             node_list.append(element)
         return node_list

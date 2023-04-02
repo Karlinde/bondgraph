@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Node:
     def __init__(self, name: str, visualization_symbol: str):
         self.name = name
