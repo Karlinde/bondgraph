@@ -13,47 +13,48 @@ from sympy import Symbol as _
 
 
 def test_basic_i_element():
-    sym_t = _("t")
-    sym_F = _("F")
-    sym_r = _("r")
-    sym_i = _("i")
-    sym_p = _("p")
+    t = _("t")
+    F = _("F")
+    r = _("r")
+    i = _("i")
+    p = _("p")
 
-    se = Source_effort("f", sym_F)
-    r = Element_R("r", sym_r)
-    i = Element_I("i", sym_i, sym_p)
+    e_se = Source_effort("f", F)
+    e_r = Element_R("r", r)
+    e_i = Element_I("i", i, p)
     j = JunctionEqualFlow("j")
 
-    g = BondGraph(sym_t)
-    g.add(Bond(se, j))
-    g.add(Bond(j, r))
-    g.add(Bond(j, i))
+    g = BondGraph(t)
+    g.add(Bond(e_se, j))
+    g.add(Bond(j, e_r))
+    g.add(Bond(j, e_i))
 
-    eqs, vars = g.get_state_equations()
-    assert eqs[1] == (sym_F - sym_r * sym_p / sym_i)
-    assert vars[0] == sym_p
+    eqs = g.get_state_equations()
+    assert eqs[p] == (F - r * p / i)
+
+
+test_basic_i_element()
 
 
 def test_basic_c_element():
-    sym_t = _("t")
-    sym_F = _("F")
-    sym_r = _("r")
-    sym_c = _("c")
-    sym_q = _("q")
+    t = _("t")
+    F = _("F")
+    r = _("r")
+    c = _("c")
+    q = _("q")
 
-    se = Source_effort("F", sym_F)
-    r = Element_R("r", sym_r)
-    c = Element_C("c", sym_c, sym_q)
+    e_se = Source_effort("F", F)
+    e_r = Element_R("r", r)
+    e_c = Element_C("c", c, q)
     j = JunctionEqualFlow("j")
 
-    g = BondGraph(sym_t)
-    g.add(Bond(se, j))
-    g.add(Bond(j, r))
-    g.add(Bond(j, c))
+    g = BondGraph(t)
+    g.add(Bond(e_se, j))
+    g.add(Bond(j, e_r))
+    g.add(Bond(j, e_c))
 
-    eqs, vars = g.get_state_equations()
-    assert eqs[1] == (sym_F - sym_q / sym_c) / sym_r
-    assert vars[0] == sym_q
+    eqs = g.get_state_equations()
+    assert eqs[q] == (F - q / c) / r
 
 
 def test_more_complex():
@@ -84,10 +85,9 @@ def test_more_complex():
     g.add(Bond(j3, e_c))
     g.add(Bond(j3, e_r))
 
-    eqs, vars = g.get_state_equations()
-    assert vars == [p, q]
-    assert eqs[1].equals(F - r * v - r * p / i - q / c)
-    assert eqs[2].equals(v + p / i)
+    eqs = g.get_state_equations()
+    assert eqs[p].equals(F - r * v - r * p / i - q / c)
+    assert eqs[q].equals(v + p / i)
 
 
 def test_basic_transformer_1():
@@ -112,9 +112,8 @@ def test_basic_transformer_1():
     g.add(Bond(tf, j2))
     g.add(Bond(j2, e_r))
 
-    eqs, vars = g.get_state_equations()
-    assert vars == [p]
-    assert eqs[1] == (F - (r * d**2 * p) / i)
+    eqs = g.get_state_equations()
+    assert eqs[p] == (F - (r * d**2 * p) / i)
 
 
 def test_basic_transformer_2():
@@ -139,6 +138,5 @@ def test_basic_transformer_2():
     g.add(Bond(tf, j2))
     g.add(Bond(j2, e_r))
 
-    eqs, vars = g.get_state_equations()
-    assert vars == [q]
-    assert eqs[1] == ((F - q / c) / (r * d**2))
+    eqs = g.get_state_equations()
+    assert eqs[q] == ((F - q / c) / (r * d**2))

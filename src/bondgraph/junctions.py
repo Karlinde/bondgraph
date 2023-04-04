@@ -1,25 +1,28 @@
-from bondgraph.common import Node, Bond, count_bonds_with_causalities_set
+from bondgraph.common import Node, Bond, Causality, count_bonds_with_causalities_set
 from typing import List
 import logging
 
 
 class Junction(Node):
-    def __init__(self, name, visualization_symbol):
-        super().__init__(name, visualization_symbol)
+    def __init__(self, name: str):
+        super().__init__(name)
         self.bonds: List[Bond] = []
 
     @staticmethod
-    def causality_policy():
-        return None
+    def causality_policy() -> Causality:
+        raise NotImplementedError()
 
-    def __str__(self):
+    def assign_constraint_causality(self) -> bool:
+        raise NotImplementedError()
+
+    def __str__(self) -> str:
         return self.name
 
 
 class JunctionEqualEffort(Junction):
     def __init__(self, name: str):
-        super().__init__(name, "0")
-        self.effort_in_bond = None
+        super().__init__(name)
+        self.effort_in_bond: Bond | None = None
 
     def assign_constraint_causality(self) -> bool:
         num_bonds_with_causality = count_bonds_with_causalities_set(self.bonds)
@@ -77,11 +80,14 @@ class JunctionEqualEffort(Junction):
 
         return something_happened
 
+    def visualization_label(self) -> str:
+        return "0"
+
 
 class JunctionEqualFlow(Junction):
     def __init__(self, name: str):
-        super().__init__(name, "1")
-        self.effort_out_bond = None
+        super().__init__(name)
+        self.effort_out_bond: Bond | None = None
 
     def assign_constraint_causality(self) -> bool:
         num_bonds_with_causality = count_bonds_with_causalities_set(self.bonds)
@@ -138,3 +144,6 @@ class JunctionEqualFlow(Junction):
                     break
 
         return something_happened
+
+    def visualization_label(self) -> str:
+        return "1"

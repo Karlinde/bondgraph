@@ -1,7 +1,7 @@
 from bondgraph.core import BondGraph
 from bondgraph.common import Node, Bond
 
-import graphviz
+import graphviz  # type: ignore
 
 from typing import Dict
 
@@ -16,10 +16,7 @@ def gen_graphviz(bond_graph: BondGraph) -> graphviz.Digraph:
 
     n: Node
     for n in bond_graph.get_nodes():
-        label = n.visualization_symbol
-        if hasattr(n, "symbol"):
-            label += f" : {n.symbol}"
-        g.node(n.name, label)
+        g.node(n.name, n.visualization_label())
         node_map[n] = n.name
 
     b: Bond

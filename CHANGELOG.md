@@ -7,3 +7,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Basic functionality for creating simple bond graphs and generating differential equations.
+- Support for visualization of bond graphs using graphviz.

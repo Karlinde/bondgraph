@@ -1,24 +1,29 @@
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List
+from typing import List, Tuple
 
-
-class Bond:
-    def __init__(self, node_from, node_to):
-        self.node_from = node_from
-        self.node_to = node_to
-        self.num = None
-        self.effort_in_at_to = None
-        self.flow_symbol = None
-        self.effort_symbol = None
-
-    def has_causality_set(self) -> bool:
-        return self.effort_in_at_to is not None
+from sympy import Expr, Function, Symbol
 
 
 class Node:
-    def __init__(self, name: str, visualization_symbol: str):
+    def __init__(self, name: str):
         self.name = name
-        self.visualization_symbol = visualization_symbol
+
+    def visualization_label(self) -> str:
+        raise NotImplementedError()
+
+
+class Bond:
+    def __init__(self, node_from: Node, node_to: Node):
+        self.node_from: Node | None = node_from
+        self.node_to: Node | None = node_to
+        self.num: int | None = None
+        self.effort_in_at_to: bool | None = None
+        self.flow_symbol: Function | None = None
+        self.effort_symbol: Function | None = None
+
+    def has_causality_set(self) -> bool:
+        return self.effort_in_at_to is not None
 
 
 class Causality(Enum):
@@ -27,6 +32,22 @@ class Causality(Enum):
     PreferEffortOut = 2
     FixedEffortIn = 3
     FixedEffortOut = 4
+
+
+class HasStateEquations(ABC):
+    @abstractmethod
+    def integrated_state_equations(
+        self, effort: Function, flow: Function, time: Symbol
+    ) -> List[Tuple[Symbol, Expr]]:
+        """
+        Return the governing equations for this element as a list of tuples
+        where the first item of each tuple is the symbol of a state variable and
+        the second item is the right-hand side of the corresponding integrated
+        state-space equation.
+
+        The reason for formulating the integrated equation here is that it will
+        be differentiated later to form the proper state-space representation.
+        """
 
 
 def count_bonds_with_causalities_set(bonds: List[Bond]) -> int:

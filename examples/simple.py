@@ -21,7 +21,7 @@ graph.add(Bond(force, mass_object))
 graph.add(Bond(mass_object, friction))
 graph.add(Bond(mass_object, inertia))
 
-state_equations, state_vars = graph.get_state_equations()
+state_equations = graph.get_state_equations()
 
-# Print the dictionary of state numbers and the right hand side of their state equations:
+# Print the dictionary of state variables and the right hand side of their state equations:
 print(state_equations)
