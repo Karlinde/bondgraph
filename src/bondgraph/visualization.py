@@ -21,10 +21,10 @@ def gen_graphviz(bond_graph: BondGraph) -> graphviz.Digraph:
 
     b: Bond
     for b in bond_graph._bonds:
-        if b.effort_in_at_to == True:
+        if b.effort_in_at_to is True:
             arrowhead_attr = "teelvee"
             arrowtail_attr = "none"
-        elif b.effort_in_at_to == False:
+        elif b.effort_in_at_to is False:
             arrowhead_attr = "lvee"
             arrowtail_attr = "tee"
         else:

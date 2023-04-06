@@ -68,7 +68,7 @@ class Element_R(OnePortElement):
     ) -> List[Equality]:
         if self.bond is None:
             return []
-        if self.bond.effort_in_at_to == True and self.bond.node_to == self:
+        if self.bond.effort_in_at_to is True and self.bond.node_to == self:
             return [Equality(flow(time), effort(time) / self.symbol)]  # type: ignore
         else:
             return [Equality(effort(time), self.symbol * flow(time))]  # type: ignore
@@ -298,14 +298,16 @@ class Transformer(TwoPortElement):
             self.bond_2.effort_in_at_to = self.bond_1.effort_in_at_to
             msg_dir = "effort-in" if self.bond_2.effort_in_at_to else "effort-out"
             logging.debug(
-                f"Set constrained {msg_dir} causality at {self.bond_2.node_to} (vs {self.bond_2.node_from}) due to transformer {self}"
+                f"Set constrained {msg_dir} causality at {self.bond_2.node_to} "
+                + f"(vs {self.bond_2.node_from}) due to transformer {self}"
             )
             return True
         elif self.bond_2.has_causality_set() and not self.bond_1.has_causality_set():
             self.bond_1.effort_in_at_to = self.bond_2.effort_in_at_to
             msg_dir = "effort-in" if self.bond_1.effort_in_at_to else "effort-out"
             logging.debug(
-                f"Set constrained {msg_dir} causality at {self.bond_1.node_to} (vs {self.bond_1.node_from}) due to transformer {self}"
+                f"Set constrained {msg_dir} causality at {self.bond_1.node_to} "
+                + f"(vs {self.bond_1.node_from}) due to transformer {self}"
             )
             return True
         return False
@@ -351,14 +353,16 @@ class Gyrator(TwoPortElement):
             self.bond_2.effort_in_at_to = not self.bond_1.effort_in_at_to
             msg_dir = "effort-in" if self.bond_2.effort_in_at_to else "effort-out"
             logging.debug(
-                f"Set constrained {msg_dir} causality at {self.bond_2.node_to} (vs {self.bond_2.node_from}) due to gyrator {self}"
+                f"Set constrained {msg_dir} causality at {self.bond_2.node_to} "
+                + f"(vs {self.bond_2.node_from}) due to gyrator {self}"
             )
             return True
         elif self.bond_2.has_causality_set() and not self.bond_1.has_causality_set():
             self.bond_1.effort_in_at_to = not self.bond_2.effort_in_at_to
             msg_dir = "effort-in" if self.bond_1.effort_in_at_to else "effort-out"
             logging.debug(
-                f"Set constrained {msg_dir} causality at {self.bond_1.node_to} (vs {self.bond_1.node_from}) due to gyrator {self}"
+                f"Set constrained {msg_dir} causality at {self.bond_1.node_to} "
+                + f"(vs {self.bond_1.node_from}) due to gyrator {self}"
             )
             return True
         return False

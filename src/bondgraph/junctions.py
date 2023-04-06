@@ -31,8 +31,8 @@ class JunctionEqualEffort(Junction):
 
         # First, check if there is already a dominant effort-in causality
         for bond in self.bonds:
-            if (bond.node_to == self and bond.effort_in_at_to == True) or (
-                bond.node_from == self and bond.effort_in_at_to == False
+            if (bond.node_to == self and bond.effort_in_at_to is True) or (
+                bond.node_from == self and bond.effort_in_at_to is False
             ):
                 self.effort_in_bond = bond
                 break
@@ -47,13 +47,15 @@ class JunctionEqualEffort(Junction):
                 if bond.node_to == self:
                     bond.effort_in_at_to = False
                     logging.debug(
-                        f"Set constraint effort-out causality at {bond.node_to} (vs {bond.node_from}) due to equal-effort junction {self}"
+                        f"Set constraint effort-out causality at {bond.node_to} "
+                        + f"(vs {bond.node_from}) due to equal-effort junction {self}"
                     )
                     something_happened = True
                 elif bond.node_from == self:
                     bond.effort_in_at_to = True
                     logging.debug(
-                        f"Set constraint effort-out causality at {bond.node_from} (vs {bond.node_to}) due to equal-effort junction {self}"
+                        f"Set constraint effort-out causality at {bond.node_from} "
+                        + f"(vs {bond.node_to}) due to equal-effort junction {self}"
                     )
                     something_happened = True
 
@@ -66,14 +68,16 @@ class JunctionEqualEffort(Junction):
                         bond.effort_in_at_to = True
                         self.effort_in_bond = bond
                         logging.debug(
-                            f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-effort junction {self}"
+                            f"Set constraint effort-in causality at {bond.node_to} "
+                            + f"(vs {bond.node_from}) due to equal-effort junction {self}"
                         )
                         something_happened = True
                     elif bond.node_from == self:
                         bond.effort_in_at_to = False
                         self.effort_in_bond = bond
                         logging.debug(
-                            f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-effort junction {self}"
+                            f"Set constraint effort-in causality at {bond.node_from} "
+                            + f"(vs {bond.node_to}) due to equal-effort junction {self}"
                         )
                         something_happened = True
                     break
@@ -96,8 +100,8 @@ class JunctionEqualFlow(Junction):
 
         # First, check if there is already a dominant effort-out causality
         for bond in self.bonds:
-            if (bond.node_to == self and bond.effort_in_at_to == False) or (
-                bond.node_from == self and bond.effort_in_at_to == True
+            if (bond.node_to == self and bond.effort_in_at_to is False) or (
+                bond.node_from == self and bond.effort_in_at_to is True
             ):
                 self.effort_out_bond = bond
                 break
@@ -112,13 +116,15 @@ class JunctionEqualFlow(Junction):
                 if bond.node_to == self:
                     bond.effort_in_at_to = True
                     logging.debug(
-                        f"Set constraint effort-in causality at {bond.node_to} (vs {bond.node_from}) due to equal-effort junction {self}"
+                        f"Set constraint effort-in causality at {bond.node_to} "
+                        + f"(vs {bond.node_from}) due to equal-effort junction {self}"
                     )
                     something_happened = True
                 elif bond.node_from == self:
                     bond.effort_in_at_to = False
                     logging.debug(
-                        f"Set constraint effort-in causality at {bond.node_from} (vs {bond.node_to}) due to equal-effort junction {self}"
+                        f"Set constraint effort-in causality at {bond.node_from} "
+                        + f"(vs {bond.node_to}) due to equal-effort junction {self}"
                     )
                     something_happened = True
 
@@ -131,14 +137,16 @@ class JunctionEqualFlow(Junction):
                         bond.effort_in_at_to = False
                         self.effort_out_bond = bond
                         logging.debug(
-                            f"Set constraint effort-out causality at {bond.node_to} (vs {bond.node_from}) due to equal-effort junction {self}"
+                            f"Set constraint effort-out causality at {bond.node_to} "
+                            + f"(vs {bond.node_from}) due to equal-effort junction {self}"
                         )
                         something_happened = True
                     elif bond.node_from == self:
                         bond.effort_in_at_to = True
                         self.effort_out_bond = bond
                         logging.debug(
-                            f"Set constraint effort-out causality at {bond.node_from} (vs {bond.node_to}) due to equal-effort junction {self}"
+                            f"Set constraint effort-out causality at {bond.node_from} "
+                            + f"(vs {bond.node_to}) due to equal-effort junction {self}"
                         )
                         something_happened = True
                     break
