@@ -195,7 +195,7 @@ class BondGraph:
         self._elements: List[OnePortElement] = []
         self._junctions: List[Junction] = []
         self._two_port_elements: List[TwoPortElement] = []
-        self._parameters: Set[Symbol] = set()
+        self.parameters: Set[Symbol] = set()
         self._time_symbol = time_symbol
         self._state = _BG_STATE_INIT
 
@@ -245,7 +245,7 @@ class BondGraph:
             if bond.node_from not in self._elements:
                 self._elements.append(bond.node_from)
             bond.node_from.bond = bond
-            self._parameters.update(bond.node_from.parameter_symbols())
+            self.parameters.update(bond.node_from.parameter_symbols())
         elif isinstance(bond.node_from, Junction):
             if bond.node_from not in self._junctions:
                 self._junctions.append(bond.node_from)
@@ -255,7 +255,7 @@ class BondGraph:
             if bond.node_from not in self._two_port_elements:
                 self._two_port_elements.append(bond.node_from)
             bond.node_from.bond_2 = bond
-            self._parameters.update(bond.node_from.parameter_symbols())
+            self.parameters.update(bond.node_from.parameter_symbols())
 
         if isinstance(bond.node_to, OnePortElement):
             if bond.node_to in self._elements:
@@ -265,7 +265,7 @@ class BondGraph:
             if bond.node_to not in self._elements:
                 self._elements.append(bond.node_to)
             bond.node_to.bond = bond
-            self._parameters.update(bond.node_to.parameter_symbols())
+            self.parameters.update(bond.node_to.parameter_symbols())
         elif isinstance(bond.node_to, Junction):
             if bond.node_to not in self._junctions:
                 self._junctions.append(bond.node_to)
@@ -275,7 +275,7 @@ class BondGraph:
             if bond.node_to not in self._two_port_elements:
                 self._two_port_elements.append(bond.node_to)
             bond.node_to.bond_1 = bond
-            self._parameters.update(bond.node_to.parameter_symbols())
+            self.parameters.update(bond.node_to.parameter_symbols())
 
         bond.num = len(self._bonds) + 1
         bond.flow_symbol = Function(f"f_{bond.num}")
