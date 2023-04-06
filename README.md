@@ -1,4 +1,6 @@
 # bondgraph
+[![Python package](https://github.com/Karlinde/bondgraph/actions/workflows/python-package.yaml/badge.svg)](https://github.com/Karlinde/bondgraph/actions/workflows/python-package.yaml)
+
 A python library for creating [bond graphs](https://en.wikipedia.org/wiki/Bond_graph) of 
 physical systems and generating differential equations.
 
