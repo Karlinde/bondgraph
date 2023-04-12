@@ -16,7 +16,7 @@ friction = Element_R("friction", Symbol("k_f"))
 inertia = Element_I("inertia", Symbol("m"), Symbol("p"))
 mass_object = JunctionEqualFlow("mass_object")
 
-graph = BondGraph(Symbol("t"))
+graph = BondGraph()
 graph.add(Bond(force, mass_object))
 graph.add(Bond(mass_object, friction))
 graph.add(Bond(mass_object, inertia))

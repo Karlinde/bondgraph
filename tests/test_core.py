@@ -1,3 +1,4 @@
+from bondgraph.common import AlgebraicLoopError
 from bondgraph.core import Bond, BondGraph
 from bondgraph.junctions import JunctionEqualEffort, JunctionEqualFlow
 from bondgraph.elements.basic import (
@@ -10,10 +11,10 @@ from bondgraph.elements.basic import (
 )
 
 from sympy import Symbol as _
+import pytest
 
 
 def test_basic_i_element():
-    t = _("t")
     F = _("F")
     r = _("r")
     i = _("i")
@@ -24,7 +25,7 @@ def test_basic_i_element():
     e_i = Element_I("i", i, p)
     j = JunctionEqualFlow("j")
 
-    g = BondGraph(t)
+    g = BondGraph()
     g.add(Bond(e_se, j))
     g.add(Bond(j, e_r))
     g.add(Bond(j, e_i))
@@ -33,11 +34,7 @@ def test_basic_i_element():
     assert eqs[p] == (F - r * p / i)
 
 
-test_basic_i_element()
-
-
 def test_basic_c_element():
-    t = _("t")
     F = _("F")
     r = _("r")
     c = _("c")
@@ -48,7 +45,7 @@ def test_basic_c_element():
     e_c = Element_C("c", c, q)
     j = JunctionEqualFlow("j")
 
-    g = BondGraph(t)
+    g = BondGraph()
     g.add(Bond(e_se, j))
     g.add(Bond(j, e_r))
     g.add(Bond(j, e_c))
@@ -58,7 +55,6 @@ def test_basic_c_element():
 
 
 def test_more_complex():
-    t = _("t")
     F = _("F")
     v = _("v")
     r = _("r")
@@ -76,7 +72,7 @@ def test_more_complex():
     e_r = Element_R("r", r)
     e_sf = Source_flow("v", v)
 
-    g = BondGraph(t)
+    g = BondGraph()
     g.add(Bond(e_se, j1))
     g.add(Bond(j1, e_i))
     g.add(Bond(j1, j2))
@@ -91,7 +87,6 @@ def test_more_complex():
 
 
 def test_basic_transformer_1():
-    t = _("t")
     F = _("F")
     r = _("r")
     i = _("i")
@@ -105,7 +100,7 @@ def test_basic_transformer_1():
     e_r = Element_R("r", r)
     tf = Transformer("TF", d)
 
-    g = BondGraph(t)
+    g = BondGraph()
     g.add(Bond(e_se, j1))
     g.add(Bond(j1, e_i))
     g.add(Bond(j1, tf))
@@ -117,7 +112,6 @@ def test_basic_transformer_1():
 
 
 def test_basic_transformer_2():
-    t = _("t")
     F = _("F")
     r = _("r")
     c = _("c")
@@ -131,7 +125,7 @@ def test_basic_transformer_2():
     e_r = Element_R("r", r)
     tf = Transformer("TF", d)
 
-    g = BondGraph(t)
+    g = BondGraph()
     g.add(Bond(e_se, j1))
     g.add(Bond(j1, e_c))
     g.add(Bond(j1, tf))
@@ -140,3 +134,33 @@ def test_basic_transformer_2():
 
     eqs = g.get_state_equations()
     assert eqs[q] == ((F - q / c) / (r * d**2))
+
+
+def test_algebraic_loops():
+    F = _("F")
+    r1 = _("r1")
+    r2 = _("r2")
+    r3 = _("r3")
+    c = _("c")
+    q = _("q")
+
+    e_se = Source_effort("F", F)
+    e_r1 = Element_R("r1", r1)
+    e_r2 = Element_R("r2", r2)
+    e_r3 = Element_R("r3", r3)
+    j1 = JunctionEqualFlow("j1")
+    j2 = JunctionEqualEffort("j2")
+    j3 = JunctionEqualFlow("j3")
+    e_c = Element_C("c", c, q)
+
+    g = BondGraph()
+    g.add(Bond(e_se, j1))
+    g.add(Bond(j1, e_r1))
+    g.add(Bond(j1, j2))
+    g.add(Bond(j2, e_r2))
+    g.add(Bond(j2, j3))
+    g.add(Bond(j3, e_r3))
+    g.add(Bond(j3, e_c))
+
+    with pytest.raises(AlgebraicLoopError):
+        g.get_state_equations()

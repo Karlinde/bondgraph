@@ -3,9 +3,15 @@ from bondgraph.elements.basic import (
     TwoPortElement,
 )
 from bondgraph.junctions import Junction, JunctionEqualEffort, JunctionEqualFlow
-from bondgraph.common import Causality, Bond, HasStateEquations, Node
+from bondgraph.common import (
+    Causality,
+    Bond,
+    HasStateEquations,
+    Node,
+    AlgebraicLoopError,
+)
 from typing import Dict, List, Set
-from sympy import Expr, Symbol, Function, Equality
+from sympy import Expr, Symbol, Equality
 import logging
 
 _BG_STATE_INIT = 0
@@ -18,7 +24,6 @@ def _populate_one_port_equations(
     state_counter: int,
     other_equations: List[Equality],
     elements: List[OnePortElement],
-    time_symbol: Symbol,
 ):
     for one_port_element in elements:
         if (
@@ -30,13 +35,10 @@ def _populate_one_port_equations(
         other_equations += one_port_element.equations(
             one_port_element.bond.effort_symbol,
             one_port_element.bond.flow_symbol,
-            time_symbol,
         )
         if isinstance(one_port_element, HasStateEquations):
-            state_eqs = one_port_element.integrated_state_equations(
-                one_port_element.bond.effort_symbol,
-                one_port_element.bond.flow_symbol,
-                time_symbol,
+            state_eqs = one_port_element.state_equations(
+                one_port_element.bond.effort_symbol, one_port_element.bond.flow_symbol
             )
             for state_eq in state_eqs:
                 if state_eq[0] in state_equations:
@@ -49,7 +51,7 @@ def _populate_one_port_equations(
 
 
 def _populate_two_port_equations(
-    other_equations: List[Equality], elements: List[TwoPortElement], time_symbol: Symbol
+    other_equations: List[Equality], elements: List[TwoPortElement]
 ):
     for two_port_element in elements:
         if (
@@ -66,12 +68,11 @@ def _populate_two_port_equations(
             two_port_element.bond_2.effort_symbol,
             two_port_element.bond_1.flow_symbol,
             two_port_element.bond_2.flow_symbol,
-            time_symbol,
         )
 
 
 def _populate_junction_equations(
-    other_equations: List[Equality], junctions: List[Junction], time_symbol: Symbol
+    other_equations: List[Equality], junctions: List[Junction]
 ):
     for junction in junctions:
         if isinstance(junction, JunctionEqualEffort):
@@ -82,7 +83,7 @@ def _populate_junction_equations(
                 continue
             # Add new equation for setting effort-in bond's flow symbol equal to the rest of the flows.
             new_eq: Equality = Equality(
-                junction.effort_in_bond.flow_symbol(time_symbol), 0  # type: ignore
+                junction.effort_in_bond.flow_symbol, 0
             )
             if not isinstance(new_eq, Equality):
                 raise Exception("Invalid equation at junction")
@@ -93,11 +94,11 @@ def _populate_junction_equations(
                     continue
                 if junction == bond.node_to:
                     new_eq = Equality(
-                        new_eq.lhs, new_eq.rhs + bond.flow_symbol(time_symbol)  # type: ignore
+                        new_eq.lhs, new_eq.rhs + bond.flow_symbol
                     )
                 else:
                     new_eq = Equality(
-                        new_eq.lhs, new_eq.rhs - bond.flow_symbol(time_symbol)  # type: ignore
+                        new_eq.lhs, new_eq.rhs - bond.flow_symbol
                     )
             if junction.effort_in_bond.node_to == junction:
                 new_eq = Equality(new_eq.lhs, -new_eq.rhs)  # type: ignore
@@ -109,21 +110,19 @@ def _populate_junction_equations(
             ):
                 continue
             # Add new equation for setting effort-out bond's effort symbol equal to the rest of the efforts
-            new_eq = Equality(
-                junction.effort_out_bond.effort_symbol(time_symbol), 0  # type: ignore
-            )
+            new_eq = Equality(junction.effort_out_bond.effort_symbol, 0)
             for bond in junction.bonds:
                 if bond is junction.effort_out_bond:
                     continue
                 if junction == bond.node_to:
                     new_eq = Equality(
                         new_eq.lhs,
-                        new_eq.rhs + bond.effort_symbol(time_symbol),  # type: ignore
+                        new_eq.rhs + bond.effort_symbol,  # type: ignore
                     )
                 else:
                     new_eq = Equality(
                         new_eq.lhs,
-                        new_eq.rhs - bond.effort_symbol(time_symbol),  # type: ignore
+                        new_eq.rhs - bond.effort_symbol,  # type: ignore
                     )
             if junction.effort_out_bond.node_to == junction:
                 new_eq = Equality(new_eq.lhs, -new_eq.rhs)  # type: ignore
@@ -134,7 +133,6 @@ def _substitute_junction_equations(
     junctions: List[Junction],
     state_equations: Dict[Symbol, Expr],
     other_equations: List[Equality],
-    time_symbol: Symbol,
 ):
     substitutions_made = True
     while substitutions_made:
@@ -152,10 +150,8 @@ def _substitute_junction_equations(
                     ):
                         continue
                     substitutions[
-                        bond.effort_symbol(time_symbol)  # type: ignore
-                    ] = junction.effort_in_bond.effort_symbol(
-                        time_symbol
-                    )  # type: ignore
+                        bond.effort_symbol
+                    ] = junction.effort_in_bond.effort_symbol
             elif isinstance(junction, JunctionEqualFlow):
                 # Substitute all flow symbols with the effort-out bond's flow symbol
                 for bond in junction.bonds:
@@ -169,10 +165,8 @@ def _substitute_junction_equations(
                     if bond is junction.effort_out_bond:
                         continue
                     substitutions[
-                        bond.flow_symbol(time_symbol)  # type: ignore
-                    ] = junction.effort_out_bond.flow_symbol(
-                        time_symbol
-                    )  # type: ignore
+                        bond.flow_symbol
+                    ] = junction.effort_out_bond.flow_symbol
             for index, eq in enumerate(other_equations):
                 before_eq = other_equations[index]
                 replaced_eq = Equality(eq.lhs, eq.rhs.xreplace(substitutions))
@@ -190,13 +184,12 @@ def _substitute_junction_equations(
 
 
 class BondGraph:
-    def __init__(self, time_symbol: Symbol):
+    def __init__(self):
         self._bonds: List[Bond] = []
         self._elements: List[OnePortElement] = []
         self._junctions: List[Junction] = []
         self._two_port_elements: List[TwoPortElement] = []
         self.parameters: Set[Symbol] = set()
-        self._time_symbol = time_symbol
         self._state = _BG_STATE_INIT
 
     def all_causalities_set(self):
@@ -278,8 +271,8 @@ class BondGraph:
             self.parameters.update(bond.node_to.parameter_symbols())
 
         bond.num = len(self._bonds) + 1
-        bond.flow_symbol = Function(f"f_{bond.num}")
-        bond.effort_symbol = Function(f"e_{bond.num}")
+        bond.flow_symbol = Symbol(f"f_{bond.num}")
+        bond.effort_symbol = Symbol(f"e_{bond.num}")
 
         self._bonds.append(bond)
 
@@ -330,6 +323,10 @@ class BondGraph:
         something_happened = False
         for element in self._elements:
             if element.assign_arbitrary_causality():
+                # Algebraic loops currently not supported, may change in future
+                raise AlgebraicLoopError(
+                    "Algebraic loop detected, cannot formulate model"
+                )
                 something_happened = True
                 # Only assign causality for one element at a time
                 break
@@ -373,22 +370,17 @@ class BondGraph:
             state_counter,
             other_equations,
             self._elements,
-            self._time_symbol,
         )
 
         logging.debug("Formulating equations for two-port elements...")
-        _populate_two_port_equations(
-            other_equations, self._two_port_elements, self._time_symbol
-        )
+        _populate_two_port_equations(other_equations, self._two_port_elements)
 
         logging.debug("Formulating equations for junctions...")
-        _populate_junction_equations(
-            other_equations, self._junctions, self._time_symbol
-        )
+        _populate_junction_equations(other_equations, self._junctions)
 
         logging.debug("Substituting in junction equations...")
         _substitute_junction_equations(
-            self._junctions, state_equations, other_equations, self._time_symbol
+            self._junctions, state_equations, other_equations
         )
 
         ordered_equations = dict()
@@ -411,15 +403,13 @@ class BondGraph:
         logging.debug("Generating differential equations...")
         diff_eq_sys: Dict[Symbol, Expr] = dict()
         for var, rhs in state_equations.items():
-            diff_eq = rhs.diff(self._time_symbol)
-
             before = None
-            while before != diff_eq:
-                before = diff_eq
-                diff_eq = diff_eq.xreplace(ordered_equations)
+            while before != rhs:
+                before = rhs
+                rhs = rhs.xreplace(ordered_equations)
 
-            if isinstance(diff_eq, Expr):
-                diff_eq_sys[var] = diff_eq
+            if isinstance(rhs, Expr):
+                diff_eq_sys[var] = rhs
 
         return diff_eq_sys
 

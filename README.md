@@ -37,7 +37,7 @@ friction = Element_R("friction", Symbol("k_f"))
 inertia = Element_I("inertia", Symbol("m"), Symbol("p"))
 mass_object = JunctionEqualFlow("mass_object")
 
-graph = BondGraph(Symbol("t"))
+graph = BondGraph()
 graph.add(Bond(force, mass_object))
 graph.add(Bond(mass_object, friction))
 graph.add(Bond(mass_object, inertia))
@@ -46,7 +46,7 @@ state_equations = graph.get_state_equations()
 
 # Print the dictionary of state variables and the right hand side of their state equations:
 print(state_equations)
-# {p: (F - inertia_state*k_f)/m}
+# {p: F - k_f*p/m}
 
 # If using the optional visualization features, generate and display a graphviz graph:
 from bondgraph.visualization import gen_graphviz

@@ -1,6 +1,6 @@
 from bondgraph.common import Causality
 from bondgraph.elements.basic import OnePortElement
-from sympy import Symbol, Equality, Function, tanh
+from sympy import Symbol, Equality, tanh
 from typing import Set
 
 
@@ -12,14 +12,14 @@ class Element_ReliefValve(OnePortElement):
         self.d = d
         self.k = k
 
-    def equations(self, effort: Function, flow: Function, time: Symbol):
+    def equations(self, effort: Symbol, flow: Symbol):
         return [
             Equality(
-                flow(time),  # type: ignore
-                effort(time)  # type: ignore
+                flow,
+                effort
                 / (
-                    self.rc * (0.5 - 0.5 * tanh(self.k * (effort(time) - self.d)))  # type: ignore
-                    + self.ro * (0.5 + 0.5 * tanh(self.k * (effort(time) - self.d)))  # type: ignore
+                    self.rc * (0.5 - 0.5 * tanh(self.k * (effort - self.d)))  # type: ignore
+                    + self.ro * (0.5 + 0.5 * tanh(self.k * (effort - self.d)))  # type: ignore
                 ),
             )
         ]

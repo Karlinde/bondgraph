@@ -1,4 +1,4 @@
-from sympy import Symbol, Equality, Expr, Function
+from sympy import Symbol, Equality, Expr
 from typing import List, Set, Tuple
 from bondgraph.common import Causality, Node, Bond, HasStateEquations
 
@@ -10,9 +10,7 @@ class OnePortElement(Node):
         super().__init__(name)
         self.bond: Bond | None = None
 
-    def equations(
-        self, effort: Function, flow: Function, time: Symbol
-    ) -> List[Equality]:
+    def equations(self, effort: Symbol, flow: Symbol) -> List[Equality]:
         raise NotImplementedError()
 
     @staticmethod
@@ -39,12 +37,7 @@ class TwoPortElement(Node):
         self.bond_2: Bond | None = None
 
     def equations(
-        self,
-        effort_1: Function,
-        effort_2: Function,
-        flow_1: Function,
-        flow_2: Function,
-        time: Symbol,
+        self, effort_1: Symbol, effort_2: Symbol, flow_1: Symbol, flow_2: Symbol
     ) -> List[Equality]:
         raise NotImplementedError()
 
@@ -63,15 +56,13 @@ class Element_R(OnePortElement):
         super().__init__(name)
         self.symbol = symbol
 
-    def equations(
-        self, effort: Function, flow: Function, time: Symbol
-    ) -> List[Equality]:
+    def equations(self, effort: Symbol, flow: Symbol) -> List[Equality]:
         if self.bond is None:
             return []
         if self.bond.effort_in_at_to is True and self.bond.node_to == self:
-            return [Equality(flow(time), effort(time) / self.symbol)]  # type: ignore
+            return [Equality(flow, effort / self.symbol)]
         else:
-            return [Equality(effort(time), self.symbol * flow(time))]  # type: ignore
+            return [Equality(effort, self.symbol * flow)]
 
     @staticmethod
     def causality_policy() -> Causality:
@@ -101,15 +92,13 @@ class Element_C(OnePortElement, HasStateEquations):
         self._compliance = compliance
         self._displacement = displacement
 
-    def equations(
-        self, effort: Function, flow: Function, time: Symbol
-    ) -> List[Equality]:
-        return [Equality(effort(time), self._displacement / self._compliance)]  # type: ignore
+    def equations(self, effort: Symbol, flow: Symbol) -> List[Equality]:
+        return [Equality(effort, self._displacement / self._compliance)]
 
-    def integrated_state_equations(
-        self, effort: Function, flow: Function, time: Symbol
+    def state_equations(
+        self, effort: Symbol, flow: Symbol
     ) -> List[Tuple[Symbol, Expr]]:
-        return [(self._displacement, flow(time).integrate(time))]  # type: ignore
+        return [(self._displacement, flow)]
 
     @staticmethod
     def causality_policy():
@@ -146,15 +135,13 @@ class Element_I(OnePortElement, HasStateEquations):
         self._inertia = inertia
         self._momentum = momentum
 
-    def equations(
-        self, effort: Function, flow: Function, time: Symbol
-    ) -> List[Equality]:
-        return [Equality(flow(time), self._momentum / self._inertia)]  # type: ignore
+    def equations(self, effort: Symbol, flow: Symbol) -> List[Equality]:
+        return [Equality(flow, self._momentum / self._inertia)]
 
-    def integrated_state_equations(
-        self, effort: Function, flow: Function, time: Symbol
+    def state_equations(
+        self, effort: Symbol, flow: Symbol
     ) -> List[Tuple[Symbol, Expr]]:
-        return [(self._momentum, effort(time).integrate(time))]  # type: ignore
+        return [(self._momentum, effort)]
 
     @staticmethod
     def causality_policy():
@@ -190,10 +177,8 @@ class Source_effort(OnePortElement):
         super().__init__(name)
         self.symbol = symbol
 
-    def equations(
-        self, effort: Function, flow: Function, time: Symbol
-    ) -> List[Equality]:
-        return [Equality(effort(time), self.symbol)]  # type: ignore
+    def equations(self, effort: Symbol, flow: Symbol) -> List[Equality]:
+        return [Equality(effort, self.symbol)]
 
     @staticmethod
     def causality_policy():
@@ -229,10 +214,8 @@ class Source_flow(OnePortElement):
         super().__init__(name)
         self.symbol = symbol
 
-    def equations(
-        self, effort: Function, flow: Function, time: Symbol
-    ) -> List[Equality]:
-        return [Equality(flow(time), self.symbol)]  # type: ignore
+    def equations(self, effort: Symbol, flow: Symbol) -> List[Equality]:
+        return [Equality(flow, self.symbol)]
 
     @staticmethod
     def causality_policy():
@@ -270,23 +253,22 @@ class Transformer(TwoPortElement):
 
     def equations(
         self,
-        effort_1: Function,
-        effort_2: Function,
-        flow_1: Function,
-        flow_2: Function,
-        time: Symbol,
+        effort_1: Symbol,
+        effort_2: Symbol,
+        flow_1: Symbol,
+        flow_2: Symbol,
     ) -> List[Equality]:
         if self.bond_1 is None or self.bond_2 is None:
             raise Exception("Transformer is not fully connected")
         if self.bond_1.effort_in_at_to:
             return [
-                Equality(flow_1(time), flow_2(time) / self.ratio),  # type: ignore
-                Equality(effort_2(time), effort_1(time) / self.ratio),  # type: ignore
+                Equality(flow_1, flow_2 / self.ratio),
+                Equality(effort_2, effort_1 / self.ratio),
             ]
         elif not self.bond_1.effort_in_at_to:
             return [
-                Equality(flow_2(time), flow_1(time) * self.ratio),  # type: ignore
-                Equality(effort_1(time), effort_2(time) * self.ratio),  # type: ignore
+                Equality(flow_2, flow_1 * self.ratio),
+                Equality(effort_1, effort_2 * self.ratio),
             ]
         else:
             raise Exception(f"Invalid causality at transformer {self.name}")
@@ -326,24 +308,23 @@ class Gyrator(TwoPortElement):
 
     def equations(
         self,
-        effort_1: Function,
-        effort_2: Function,
-        flow_1: Function,
-        flow_2: Function,
-        time: Symbol,
+        effort_1: Symbol,
+        effort_2: Symbol,
+        flow_1: Symbol,
+        flow_2: Symbol,
     ):
         if self.bond_1 is None or self.bond_2 is None:
             raise Exception("Gyrator is not fully connected")
 
         if self.bond_1.effort_in_at_to:
             return [
-                Equality(flow_1(time), effort_2(time) / self.ratio),  # type: ignore
-                Equality(flow_2(time), effort_1(time) / self.ratio),  # type: ignore
+                Equality(flow_1, effort_2 / self.ratio),
+                Equality(flow_2, effort_1 / self.ratio),
             ]
         elif not self.bond_1.effort_in_at_to:
             return [
-                Equality(effort_2(time), flow_1(time) * self.ratio),  # type: ignore
-                Equality(effort_1(time), flow_2(time) * self.ratio),  # type: ignore
+                Equality(effort_2, flow_1 * self.ratio),
+                Equality(effort_1, flow_2 * self.ratio),
             ]
 
     def assign_constraint_causality(self):
