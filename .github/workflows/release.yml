@@ -8,9 +8,14 @@ permissions:
   contents: read
 
 jobs:
+  build-test:
+    uses: ./.github/workflows/python-package.yaml
+
   pypi-publish:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
+
+    needs: build-test
     
     environment:
       name: release
