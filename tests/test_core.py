@@ -1,7 +1,7 @@
 from bondgraph.common import AlgebraicLoopError
 from bondgraph.core import Bond, BondGraph
 from bondgraph.junctions import JunctionEqualEffort, JunctionEqualFlow
-from bondgraph.elements.basic import (
+from bondgraph.elements import (
     Element_R,
     Element_I,
     Element_C,

@@ -8,7 +8,7 @@ Se ---> 1 ---> I
 """
 from bondgraph.core import Bond, BondGraph
 from bondgraph.junctions import JunctionEqualFlow
-from bondgraph.elements.basic import Element_R, Element_I, Source_effort
+from bondgraph.elements import Element_R, Element_I, Source_effort
 from sympy import Symbol
 
 force = Source_effort("force", Symbol("F"))

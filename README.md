@@ -27,7 +27,7 @@ Create a `BondGraph` object and add `Bond` objects connecting various elements:
 
 from bondgraph.core import Bond, BondGraph
 from bondgraph.junctions import JunctionEqualFlow
-from bondgraph.elements.basic import Element_R, Element_I, Source_effort
+from bondgraph.elements import Element_R, Element_I, Source_effort
 from sympy import Symbol
 
 force = Source_effort("force", Symbol("F"))
