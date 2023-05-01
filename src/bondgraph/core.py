@@ -417,3 +417,13 @@ class BondGraph:
         ):
             node_list.append(element)
         return node_list
+
+    def get_parameters(self):
+        parameters = set()
+        for element in self._elements:
+            parameters.update(element.parameter_symbols())
+
+        for element in self._two_port_elements:
+            parameters.update(element.parameter_symbols())
+
+        return parameters

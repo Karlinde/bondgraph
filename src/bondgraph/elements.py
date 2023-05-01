@@ -1,5 +1,5 @@
 from sympy import Symbol, Equality, Expr
-from typing import List, Tuple
+from typing import List, Set, Tuple
 from bondgraph.common import Causality, Node, Bond, HasStateEquations
 
 import logging
@@ -26,6 +26,9 @@ class OnePortElement(Node):
     def __str__(self) -> str:
         return self.name
 
+    def parameter_symbols(self) -> Set[Symbol]:
+        raise NotImplementedError()
+
 
 class TwoPortElement(Node):
     def __init__(self, name: str):
@@ -43,6 +46,9 @@ class TwoPortElement(Node):
 
     def __str__(self) -> str:
         return self.name
+
+    def parameter_symbols(self) -> Set[Symbol]:
+        raise NotImplementedError()
 
 
 class Element_R(OnePortElement):
@@ -72,6 +78,9 @@ class Element_R(OnePortElement):
             )
             return True
         return False
+
+    def parameter_symbols(self) -> Set[Symbol]:
+        return {self.symbol}
 
     def visualization_label(self) -> str:
         return f"R: {self.symbol}"
@@ -113,6 +122,9 @@ class Element_C(OnePortElement, HasStateEquations):
                 return True
         return False
 
+    def parameter_symbols(self) -> Set[Symbol]:
+        return {self._compliance}
+
     def visualization_label(self) -> str:
         return f"C: {self._compliance}"
 
@@ -153,6 +165,9 @@ class Element_I(OnePortElement, HasStateEquations):
                 return True
         return False
 
+    def parameter_symbols(self) -> Set[Symbol]:
+        return {self._inertia}
+
     def visualization_label(self) -> str:
         return f"I: {self._inertia}"
 
@@ -187,6 +202,9 @@ class Source_effort(OnePortElement):
                 return True
         return False
 
+    def parameter_symbols(self) -> Set[Symbol]:
+        return {self.symbol}
+
     def visualization_label(self) -> str:
         return f"Se: {self.symbol}"
 
@@ -220,6 +238,9 @@ class Source_flow(OnePortElement):
                 )
                 return True
         return False
+
+    def parameter_symbols(self) -> Set[Symbol]:
+        return {self.symbol}
 
     def visualization_label(self) -> str:
         return f"Sf: {self.symbol}"
@@ -273,6 +294,9 @@ class Transformer(TwoPortElement):
             return True
         return False
 
+    def parameter_symbols(self) -> Set[Symbol]:
+        return {self.ratio}
+
     def visualization_label(self) -> str:
         return f"TF\n{self.ratio}"
 
@@ -323,6 +347,9 @@ class Gyrator(TwoPortElement):
             )
             return True
         return False
+
+    def parameter_symbols(self) -> Set[Symbol]:
+        return {self.ratio}
 
     def visualization_label(self) -> str:
         return f"GY\n{self.ratio}"
